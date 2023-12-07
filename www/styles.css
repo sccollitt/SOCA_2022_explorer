@@ -1,0 +1,17 @@
+@font-face {
+  font-family: 'AvenirNext LT Pro Regular';
+  src: url('AvenirNextLTPro-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+
+body {
+  font-family: 'AvenirNext LT Pro Regular', sans-serif;
+    font-size: 14pt;
+    height: 100vh !important;
+}
+
+#barPlot {
+height: 70vh !important;
+}
