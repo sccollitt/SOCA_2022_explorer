@@ -2,13 +2,14 @@ library(shiny)
 library(ggplot2)
 library(stringr)
 library(rsconnect)
+library(ggiraph) # for interactive ggplot
 
-load("completed_data.rdata") # note: grey color corresponds with unweighted sample size too small for confidence in estimate
+load("completed_data.rdata") # note: grey color corresponds with low confidence in estimate
 
 data <- completed_data
 
 # Function to wrap text
-wrap_axis_labels <- function(text, width = 40) {
+wrap_axis_labels <- function(text, width = 30) {
         str_wrap(text, width)
 }
 
@@ -21,7 +22,7 @@ wrap_question <- function(text, width = 40) {
 }
 
 
-# Your existing list of questions
+# list of questions
 question_list <- c("Age group" = "agecat",
                    "Education" = "edu_5cat",
                    "Gender" = "gender3c",
@@ -62,7 +63,7 @@ question_list <- c("Age group" = "agecat",
                    "Economic hardship indicator" = "hardship"
 )
 
-# Your existing list of demographics
+# list of demographics
 demographic_list <- c("Overall" = "all",
                       "Age group" = "agecat",
                       "Education" = "edu_5cat",
@@ -75,13 +76,12 @@ demographic_list <- c("Overall" = "all",
 )
 
 ui <- fluidPage(
-        titlePanel("State of Chinese Americans 2022 Survey Data Explorer"),
         tags$head(
                 includeCSS("www/styles.css")
         ),
         fluidRow(
-                column(12,
-                       selectInput("question", "Select a Question:", width = "75%",
+                column(8,
+                       selectInput("question", "Select a Question:", width = "90%",
                                    choices = list("Demographics" = list("Age group" = "agecat",
                                                                         "Education" = "edu_5cat",
                                                                         "Gender" = "gender3c",
@@ -120,9 +120,8 @@ ui <- fluidPage(
                                                                                   "In the past 12 months, about how often did your household run out of food or worried food would run out before having money to buy more?" = "foodworry",
                                                                                   "In the past 12 months, about how often did your household not pay the full amount of rent or mortgage or bills because there wasn't enough money?" = "norent",
                                                                                   "Economic hardship indicator" = "hardship")
-                                   )))),
-        fluidRow(
-                column(12,
+                                   ))),
+                column(4,
                        selectInput("demographic", "Filter by Demographic:",
                                    choices = c("Overall" = "all",
                                                "Age group" = "agecat",
@@ -135,12 +134,12 @@ ui <- fluidPage(
                                                "Household income group" = "hhi_5cat"))
                 )),
         fluidRow(
-                column(8,
+                column(12,
                        htmlOutput("textTitle")
                 )),
         fluidRow(
                 column(12,
-                       uiOutput("dynamicPlot")
+                       girafeOutput("barPlot")
                 )
         )
 )
@@ -158,25 +157,10 @@ server <- function(input, output) {
                 wrapped_question <- sapply(unique(question_title), wrap_question)
                 names(wrapped_question) <- as.character(unique(question_title))
                 
-                HTML(paste("Response distribution for:", "<b>", wrapped_question, "</b> <br> by: <b>", demographic_title, "</b>"))
+                HTML(paste("Response distribution for:", "<b>", wrapped_question, "</b> <br> By: <b>", demographic_title, "</b>"))
         })
         
-        # Generate the dynamic plot
-        output$dynamicPlot <- renderUI({
-                
-                # Filter data based on user selections
-                filtered_data <- data[data$question == input$question & data$group == input$demographic, ]
-                
-                # Count the number of unique responses (bars)
-                num_bars <- length(unique(filtered_data$response))
-                
-                # Calculate dynamic height based on the number of bars.
-                dynamic_height <- max(300, num_bars * 50)  # setting a minimum height of 300
-
-                plotOutput("barPlot", height = dynamic_height)
-        })
-        
-        output$barPlot <- renderPlot({
+        output$barPlot <- renderGirafe({
                 
                 # Check if the selected question and demographic are the same
                 if (input$question == input$demographic) {
@@ -203,20 +187,17 @@ server <- function(input, output) {
                 # Calculate maximum proportion for setting y-axis limits
                 max_proportion <- max(filtered_data$proportion)
                 
-                
-                
-                ggplot(filtered_data, aes(x = response, y = proportion, fill = bar_color)) +
+                p <- ggplot(filtered_data, aes(x = response, y = proportion, fill = bar_color)) +
                         geom_bar(stat = "identity", position = "dodge") +
                         geom_text(aes(label = paste0(round(proportion, 0), "%"), color = text_color),
-                                  hjust = -0.3,
-                                  position = position_dodge(0.9),
-                                  size = 7) +
+                                  hjust = -0.1,
+                                  position = position_dodge(0.9), size = 2.5) +
                         scale_fill_identity() +
                         scale_color_identity() + 
                         labs(title = NULL,
                              y = NULL,
                              x = NULL) +
-                        facet_wrap(~ group_levels, scales = "free", nrow = 2,  labeller = labeller(group_levels = wrapped_group_levels)) +
+                        facet_wrap(~ group_levels, scales = "free", ncol = 2,  labeller = labeller(group_levels = wrapped_group_levels)) +
                         scale_x_discrete(labels = wrapped_responses) +
                         scale_y_continuous(limits = c(0, max_proportion + 20)) +
                         theme(panel.grid.major = element_blank(),
@@ -225,17 +206,22 @@ server <- function(input, output) {
                               axis.line = element_blank(),
                               legend.position = "none",
                               strip.background = element_blank(),
-                              axis.text.y = element_text(size = 20, vjust = 0.5), 
+                              axis.text.y = element_text(vjust = 0.5, size = 7.5), 
                               axis.text.x = element_blank(),
                               axis.ticks.y = element_blank(),
                               axis.ticks.x = element_blank(),
-                              axis.title.x = element_text(size = 12),            
-                              axis.title.y = element_text(size = 12),            
-                              plot.title = element_text(size = 14, hjust = 0), 
-                              strip.text = element_text(size = 24)) +
-                        coord_flip()
+                              axis.title.x = element_text(),            
+                              axis.title.y = element_text(),            
+                              plot.title = element_text(hjust = 0), 
+                              strip.text = element_text(size = 9, hjust = 0)) +
+                        coord_flip(expand = F)
+                
+                girafe(ggobj = p, width_svg = 5, height_svg = 5)
+                
                 
         })
+        
+
 }
 
 shinyApp(ui = ui, server = server)

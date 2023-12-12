@@ -7,11 +7,41 @@
 
 
 body {
-  font-family: 'AvenirNext LT Pro Regular', sans-serif;
-    font-size: 14pt;
+    font-family: 'AvenirNext LT Pro Regular', sans-serif;
     height: 100vh !important;
 }
 
-#barPlot {
-height: 70vh !important;
+.girafe_container_std {
+    height: auto !important;
+    width: 100% !important;
+    max-width: 90vw !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+
+}
+
+.girafe_container_std svg {
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+}
+
+.girafe_container_std text {
+    font-family: 'AvenirNext LT Pro Regular', sans-serif !important;
+    line-height: 0.8 !important; 
+}
+
+.svg-wrapper {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%; /* Aspect ratio Example: 16:9 */
+}
+
+
+.container {
+    display: flex;
+    flex-direction: column;
 }
